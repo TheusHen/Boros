@@ -111,13 +111,6 @@ jobs:
           make python-check PYTHON=python
           make python-sim PYTHON=python
 
-      - name: Generate CI summary
-        shell: bash
-        run: |
-          set -euo pipefail
-          python tools/ci_report.py --out sim/flight/out/ci-summary.md
-          cat sim/flight/out/ci-summary.md >> "${GITHUB_STEP_SUMMARY}"
-
       - name: Upload Python simulation artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -125,3 +118,77 @@ jobs:
           if-no-files-found: error
           path: |
             sim/flight/out/**
+
+  ci-simulation-report:
+    name: CI Simulation Report
+    runs-on: ubuntu-latest
+    needs:
+      - firmware-build
+      - python-sim
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Download firmware artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: firmware-build
+          path: artifacts/firmware
+
+      - name: Download Python simulation artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-sim
+          path: artifacts/python-sim
+
+      - name: Materialize artifacts into expected paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p firmware sim/flight/out
+
+          FW_BIN="$(find artifacts/firmware -type f -name firmware.bin | head -n 1)"
+          FW_ELF="$(find artifacts/firmware -type f -name firmware.elf | head -n 1)"
+          if [ -z "${FW_BIN}" ] || [ -z "${FW_ELF}" ]; then
+            echo "Firmware artifacts not found after download."
+            exit 1
+          fi
+          cp "${FW_BIN}" firmware/firmware.bin
+          cp "${FW_ELF}" firmware/firmware.elf
+
+          if [ -d artifacts/python-sim/sim/flight/out ]; then
+            cp -a artifacts/python-sim/sim/flight/out/. sim/flight/out/
+          elif [ -d artifacts/python-sim/out ]; then
+            cp -a artifacts/python-sim/out/. sim/flight/out/
+          else
+            find artifacts/python-sim -type f \( -name '*.json' -o -name '*.csv' \) | while read -r f; do
+              cp "$f" sim/flight/out/
+            done
+          fi
+
+      - name: Replay firmware processing against simulation data
+        shell: bash
+        run: |
+          set -euo pipefail
+          make python-firmware-playback PYTHON=python
+
+      - name: Generate CI summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/ci_report.py --out sim/flight/out/ci-summary.md
+          cat sim/flight/out/ci-summary.md >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload CI report artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-simulation-report
+          if-no-files-found: error
+          path: |
+            sim/flight/out/ci-summary.md
+            sim/flight/out/firmware_playback_summary.json

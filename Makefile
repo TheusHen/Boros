@@ -8,7 +8,7 @@ SIM3D_DIR := sim/3d
 TOOLS_DIR := tools
 ROCKET_STL := 3d/BorosRocket.stl
 
-.PHONY: ci ci-3d check firmware python-check python-sim sim-3d-matlab sim-3d-octave dump dump-list clean
+.PHONY: ci ci-3d check firmware python-check python-sim python-firmware-playback sim-3d-matlab sim-3d-octave dump dump-list clean
 
 ci: firmware python-sim
 
@@ -30,6 +30,13 @@ python-sim: python-check
 	$(PYTHON) $(PY_SIM_DIR)/simulate.py --mass-total-g 80 --stl $(ROCKET_STL) --out $(PY_SIM_DIR)/out
 	$(PYTHON) $(PY_SIM_DIR)/monte_carlo.py --iterations 120 --out $(PY_SIM_DIR)/out/monte_carlo
 	$(PYTHON) $(PY_SIM_DIR)/detect_apogee.py $(PY_SIM_DIR)/out/firmware_like_log.csv
+
+python-firmware-playback:
+	$(PYTHON) $(TOOLS_DIR)/firmware_playback.py \
+		--input $(PY_SIM_DIR)/out/firmware_like_log.csv \
+		--firmware-bin $(FW_DIR)/firmware.bin \
+		--firmware-elf $(FW_DIR)/firmware.elf \
+		--out $(PY_SIM_DIR)/out/firmware_playback_summary.json
 
 sim-3d-matlab:
 	$(MATLAB) -batch "cd('$(SIM3D_DIR)'); test_aero_limits; run_ci_sim"

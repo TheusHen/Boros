@@ -15,18 +15,6 @@ def load_json(path: Path) -> dict | None:
         return None
 
 
-def load_kv(path: Path) -> dict[str, str]:
-    out: dict[str, str] = {}
-    if not path.exists():
-        return out
-    for line in path.read_text(encoding="utf-8").splitlines():
-        if "=" not in line:
-            continue
-        k, v = line.split("=", 1)
-        out[k.strip()] = v.strip()
-    return out
-
-
 def main() -> None:
     ap = argparse.ArgumentParser(description="Generate concise CI markdown summary")
     ap.add_argument("--repo-root", default=".", type=str)
@@ -38,7 +26,7 @@ def main() -> None:
     firmware_elf = root / "firmware" / "firmware.elf"
     py_summary = load_json(root / "sim" / "flight" / "out" / "summary.json")
     py_mc = load_json(root / "sim" / "flight" / "out" / "monte_carlo" / "monte_carlo_summary.json")
-    m3d = load_kv(root / "sim" / "3d" / "out" / "report_matlab_summary.txt")
+    fw_playback = load_json(root / "sim" / "flight" / "out" / "firmware_playback_summary.json")
 
     lines: list[str] = []
     lines.append("## CI Simulation Report")
@@ -72,14 +60,38 @@ def main() -> None:
         lines.append("- Monte Carlo summary not found")
     lines.append("")
 
-    lines.append("### MATLAB/Octave 3D")
-    if m3d:
-        lines.append(f"- Apogee: `{m3d.get('apogee_m', 'n/a')}` m")
-        lines.append(f"- Drift: `{m3d.get('drift_m', 'n/a')}` m")
-        lines.append(f"- Flight time: `{m3d.get('flight_time_s', 'n/a')}` s")
-        lines.append(f"- Chute diameter: `{m3d.get('chute_diameter_m', 'n/a')}` m")
+    lines.append("### Firmware Playback")
+    if fw_playback:
+        fw = fw_playback.get("firmware", {})
+        fw_bin_meta = fw.get("bin", {})
+        fw_elf_meta = fw.get("elf", {})
+        scenarios = fw_playback.get("scenarios", {})
+        nominal = scenarios.get("nominal", {})
+        fallback = scenarios.get("fallback_injected", {})
+        lines.append(
+            f"- Firmware BIN SHA256: `{str(fw_bin_meta.get('sha256', 'n/a'))[:12]}`"
+            f" ({fw_bin_meta.get('size_bytes', 'n/a')} bytes)"
+        )
+        lines.append(
+            f"- Firmware ELF SHA256: `{str(fw_elf_meta.get('sha256', 'n/a'))[:12]}`"
+            f" ({fw_elf_meta.get('size_bytes', 'n/a')} bytes)"
+        )
+        lines.append(
+            "- Nominal storage: "
+            f"`mode={nominal.get('mode_end', 'n/a')}` "
+            f"`drop={nominal.get('dropped_records', 'n/a')}` "
+            f"`flash_fail={nominal.get('flash_fail_count', 'n/a')}` "
+            f"`compression={nominal.get('compression_ratio', 'n/a')}`"
+        )
+        lines.append(
+            "- Injected fallback: "
+            f"`mode={fallback.get('mode_end', 'n/a')}` "
+            f"`drop={fallback.get('dropped_records', 'n/a')}` "
+            f"`flash_fail={fallback.get('flash_fail_count', 'n/a')}` "
+            f"`ram_peak={fallback.get('ram_peak_records', 'n/a')}`"
+        )
     else:
-        lines.append("- 3D summary not found")
+        lines.append("- Firmware playback summary not found")
     lines.append("")
 
     text = "\n".join(lines) + "\n"

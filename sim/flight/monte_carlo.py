@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import concurrent.futures as cf
 import csv
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -17,6 +19,10 @@ except ImportError:  # pragma: no cover
     from forces import load_stl_geometry
 
 
+_WORKER_GEOM = None
+_WORKER_GEOM_KEY: tuple[str, float, float] | None = None
+
+
 def percentile_stats(values: np.ndarray) -> dict:
     return {
         "mean": float(np.mean(values)),
@@ -28,13 +34,42 @@ def percentile_stats(values: np.ndarray) -> dict:
     }
 
 
-def run_monte_carlo(iterations: int, out_dir: Path, seed: int = 2026) -> None:
+def _simulate_case(task: tuple[int, object, tuple[str, float, float]]) -> dict:
+    case_idx, cfg, geom_key = task
+    global _WORKER_GEOM, _WORKER_GEOM_KEY
+    if _WORKER_GEOM is None or _WORKER_GEOM_KEY != geom_key:
+        stl_path, unit_scale, body_quantile = geom_key
+        _WORKER_GEOM = load_stl_geometry(stl_path, unit_scale, body_quantile)
+        _WORKER_GEOM_KEY = geom_key
+
+    result = run_flight_simulation(cfg, _WORKER_GEOM, seed=cfg.random_seed)
+    return {
+        "case": case_idx,
+        "mass_kg": cfg.mass.total_liftoff_mass_kg,
+        "cd_scale": cfg.aero.flight_cd_scale,
+        "angle_deg": cfg.launch.angle_deg,
+        "delay_s": cfg.engine.delay_s,
+        "wind0_mps": cfg.wind.wind0_mps,
+        "windtop_mps": cfg.wind.wind_top_mps,
+        "gust_sigma_mps": cfg.wind.gust_sigma_mps,
+        "apogee_m": result.summary["apogee_m"],
+        "drift_m": result.summary["drift_m"],
+        "flight_time_s": result.summary["flight_time_s"],
+        "landing_speed_mps": result.summary["landing_speed_mps"],
+    }
+
+
+def run_monte_carlo(iterations: int, out_dir: Path, seed: int = 2026, jobs: int = 0) -> None:
     base = default_simulation_config()
-    geom = load_stl_geometry(base.geometry.stl_path, base.geometry.unit_scale, base.geometry.body_quantile)
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    if jobs <= 0:
+        jobs = max(1, (os.cpu_count() or 1) - 1)
+    jobs = max(1, min(jobs, iterations))
+
     rng = np.random.default_rng(seed)
-    rows: list[dict] = []
+    geom_key = (base.geometry.stl_path, base.geometry.unit_scale, base.geometry.body_quantile)
+    tasks: list[tuple[int, object, tuple[str, float, float]]] = []
 
     for i in range(iterations):
         cfg = clone_config(base)
@@ -56,24 +91,32 @@ def run_monte_carlo(iterations: int, out_dir: Path, seed: int = 2026) -> None:
         elif cfg.wind.profile == "constant":
             cfg.wind.constant_mps = rng.normal(base.wind.constant_mps, 1.2)
 
-        result = run_flight_simulation(cfg, geom, seed=cfg.random_seed)
+        tasks.append((i, cfg, geom_key))
 
-        rows.append(
-            {
-                "case": i,
-                "mass_kg": cfg.mass.total_liftoff_mass_kg,
-                "cd_scale": cfg.aero.flight_cd_scale,
-                "angle_deg": cfg.launch.angle_deg,
-                "delay_s": cfg.engine.delay_s,
-                "wind0_mps": cfg.wind.wind0_mps,
-                "windtop_mps": cfg.wind.wind_top_mps,
-                "gust_sigma_mps": cfg.wind.gust_sigma_mps,
-                "apogee_m": result.summary["apogee_m"],
-                "drift_m": result.summary["drift_m"],
-                "flight_time_s": result.summary["flight_time_s"],
-                "landing_speed_mps": result.summary["landing_speed_mps"],
-            }
-        )
+    if jobs == 1:
+        geom = load_stl_geometry(*geom_key)
+        rows = []
+        for case_idx, cfg, _ in tasks:
+            result = run_flight_simulation(cfg, geom, seed=cfg.random_seed)
+            rows.append(
+                {
+                    "case": case_idx,
+                    "mass_kg": cfg.mass.total_liftoff_mass_kg,
+                    "cd_scale": cfg.aero.flight_cd_scale,
+                    "angle_deg": cfg.launch.angle_deg,
+                    "delay_s": cfg.engine.delay_s,
+                    "wind0_mps": cfg.wind.wind0_mps,
+                    "windtop_mps": cfg.wind.wind_top_mps,
+                    "gust_sigma_mps": cfg.wind.gust_sigma_mps,
+                    "apogee_m": result.summary["apogee_m"],
+                    "drift_m": result.summary["drift_m"],
+                    "flight_time_s": result.summary["flight_time_s"],
+                    "landing_speed_mps": result.summary["landing_speed_mps"],
+                }
+            )
+    else:
+        with cf.ProcessPoolExecutor(max_workers=jobs) as executor:
+            rows = list(executor.map(_simulate_case, tasks))
 
     csv_path = out_dir / "monte_carlo_cases.csv"
     with csv_path.open("w", newline="", encoding="utf-8") as fh:
@@ -99,6 +142,7 @@ def run_monte_carlo(iterations: int, out_dir: Path, seed: int = 2026) -> None:
         json.dump(summary, fh, indent=2)
 
     print("=== Monte Carlo Completed ===")
+    print(f"Workers: {jobs}")
     print(f"Cases: {iterations}")
     print(f"Apogee P50/P90: {summary['apogee_m']['p50']:.1f} / {summary['apogee_m']['p90']:.1f} m")
     print(f"|Drift| P50/P90: {summary['abs_drift_m']['p50']:.1f} / {summary['abs_drift_m']['p90']:.1f} m")
@@ -110,11 +154,12 @@ def main() -> None:
     ap.add_argument("--iterations", type=int, default=300)
     ap.add_argument("--seed", type=int, default=2026)
     ap.add_argument("--out", type=str, default=None)
+    ap.add_argument("--jobs", type=int, default=0, help="Parallel workers. 0 = auto")
     args = ap.parse_args()
 
     cfg = default_simulation_config()
     out_dir = Path(cfg.output.out_dir) / "monte_carlo" if args.out is None else Path(args.out)
-    run_monte_carlo(iterations=max(args.iterations, 10), out_dir=out_dir, seed=args.seed)
+    run_monte_carlo(iterations=max(args.iterations, 10), out_dir=out_dir, seed=args.seed, jobs=args.jobs)
 
 
 if __name__ == "__main__":
