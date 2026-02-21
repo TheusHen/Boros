@@ -59,8 +59,16 @@ def _simulate_case(task: tuple[int, object, tuple[str, float, float]]) -> dict:
     }
 
 
-def run_monte_carlo(iterations: int, out_dir: Path, seed: int = 2026, jobs: int = 0) -> None:
+def run_monte_carlo(
+    iterations: int,
+    out_dir: Path,
+    seed: int = 2026,
+    jobs: int = 0,
+    mass_total_g: float | None = None,
+) -> None:
     base = default_simulation_config()
+    if mass_total_g is not None:
+        base.mass.total_liftoff_mass_kg = max(0.001, float(mass_total_g) / 1000.0)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     if jobs <= 0:
@@ -155,11 +163,18 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=2026)
     ap.add_argument("--out", type=str, default=None)
     ap.add_argument("--jobs", type=int, default=0, help="Parallel workers. 0 = auto")
+    ap.add_argument("--mass-total-g", type=float, default=None, help="Override total liftoff mass (g)")
     args = ap.parse_args()
 
     cfg = default_simulation_config()
     out_dir = Path(cfg.output.out_dir) / "monte_carlo" if args.out is None else Path(args.out)
-    run_monte_carlo(iterations=max(args.iterations, 10), out_dir=out_dir, seed=args.seed, jobs=args.jobs)
+    run_monte_carlo(
+        iterations=max(args.iterations, 10),
+        out_dir=out_dir,
+        seed=args.seed,
+        jobs=args.jobs,
+        mass_total_g=args.mass_total_g,
+    )
 
 
 if __name__ == "__main__":

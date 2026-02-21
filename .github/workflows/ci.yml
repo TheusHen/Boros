@@ -177,12 +177,21 @@ jobs:
           set -euo pipefail
           make python-firmware-playback PYTHON=python
 
+      - name: Compute mass budget from 3D model + motor + PCB plate
+        shell: bash
+        run: |
+          set -euo pipefail
+          make python-mass-budget PYTHON=python
+
       - name: Generate CI summary
         shell: bash
         run: |
           set -euo pipefail
           python tools/ci_report.py --out sim/flight/out/ci-summary.md
           cat sim/flight/out/ci-summary.md >> "${GITHUB_STEP_SUMMARY}"
+          if [ -f sim/flight/out/mass_budget.md ]; then
+            cat sim/flight/out/mass_budget.md >> "${GITHUB_STEP_SUMMARY}"
+          fi
 
       - name: Upload CI report artifacts
         uses: actions/upload-artifact@v4
@@ -192,3 +201,5 @@ jobs:
           path: |
             sim/flight/out/ci-summary.md
             sim/flight/out/firmware_playback_summary.json
+            sim/flight/out/mass_budget.json
+            sim/flight/out/mass_budget.md

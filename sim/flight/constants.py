@@ -88,7 +88,7 @@ class AeroConfig:
 
 @dataclass
 class MassConfig:
-    total_liftoff_mass_kg: float = 0.080  # user request: complete rocket = 80g
+    total_liftoff_mass_kg: float = 0.076978  # Plate version estimate from mass budget (3D + motor + PCB)
     motor_total_mass_kg: float = 0.0241
     motor_prop_mass_kg: float = 0.0122
 
@@ -130,7 +130,7 @@ class RecoveryConfig:
     cd_chute: float = 1.35
     auto_size: bool = False
     v_target_mps: float = 3.0
-    diam_m: float = 0.25 # Fixed, optimal size for 80g rocket for drift and descent rate.
+    diam_m: float = 0.25  # Fixed chute diameter for Plate baseline
     deploy_extra_s: float = 0.0
     inflation_time_s: float = 0.6
     body_drag_after_deploy: bool = True
