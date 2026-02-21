@@ -64,7 +64,7 @@ jobs:
 
       - name: Add ARM GCC to PATH
         shell: bash
-        run: echo "${ARM_GCC_DIR}/bin" >> "${GITHUB_PATH}"
+        run: echo "$GITHUB_WORKSPACE/${ARM_GCC_DIR}/bin" >> "${GITHUB_PATH}"
 
       - name: Build firmware
         shell: bash
