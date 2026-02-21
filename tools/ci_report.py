@@ -15,6 +15,28 @@ def load_json(path: Path) -> dict | None:
         return None
 
 
+def load_first_json(paths: list[Path]) -> dict | None:
+    for p in paths:
+        data = load_json(p)
+        if data is not None:
+            return data
+    return None
+
+
+def find_json_by_name(search_root: Path, filename: str) -> dict | None:
+    if not search_root.exists():
+        return None
+    try:
+        candidates = sorted(
+            search_root.rglob(filename),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+    except Exception:
+        candidates = []
+    return load_first_json(candidates)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Generate concise CI markdown summary")
     ap.add_argument("--repo-root", default=".", type=str)
@@ -24,9 +46,26 @@ def main() -> None:
     root = Path(args.repo_root).resolve()
     firmware_bin = root / "firmware" / "firmware.bin"
     firmware_elf = root / "firmware" / "firmware.elf"
-    py_summary = load_json(root / "sim" / "flight" / "out" / "summary.json")
-    py_mc = load_json(root / "sim" / "flight" / "out" / "monte_carlo" / "monte_carlo_summary.json")
-    fw_playback = load_json(root / "sim" / "flight" / "out" / "firmware_playback_summary.json")
+    out_dir = root / "sim" / "flight" / "out"
+    py_summary = load_first_json(
+        [
+            out_dir / "summary.json",
+            root / "summary.json",
+        ]
+    ) or find_json_by_name(out_dir, "summary.json")
+    py_mc = load_first_json(
+        [
+            out_dir / "monte_carlo" / "monte_carlo_summary.json",
+            out_dir / "monte_carlo_summary.json",
+            root / "monte_carlo_summary.json",
+        ]
+    ) or find_json_by_name(out_dir, "monte_carlo_summary.json")
+    fw_playback = load_first_json(
+        [
+            out_dir / "firmware_playback_summary.json",
+            root / "firmware_playback_summary.json",
+        ]
+    ) or find_json_by_name(out_dir, "firmware_playback_summary.json")
 
     lines: list[str] = []
     lines.append("## CI Simulation Report")

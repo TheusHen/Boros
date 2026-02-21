@@ -128,9 +128,9 @@ class RecoveryConfig:
     enabled: bool = True
     mode: RecoveryMode = "time"
     cd_chute: float = 1.35
-    auto_size: bool = True
+    auto_size: bool = False
     v_target_mps: float = 3.0
-    diam_m: float = 0.35
+    diam_m: float = 0.25 # Fixed, optimal size for 80g rocket for drift and descent rate.
     deploy_extra_s: float = 0.0
     inflation_time_s: float = 0.6
     body_drag_after_deploy: bool = True
