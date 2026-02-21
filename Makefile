@@ -10,17 +10,17 @@ ROCKET_STL := 3d/BorosRocket.stl
 
 .PHONY: ci ci-3d check firmware python-check python-sim sim-3d-matlab sim-3d-octave dump dump-list clean
 
-ci: python-sim
+ci: firmware python-sim
 
 ci-3d: sim-3d-octave
 	$(MAKE) python-sim PYTHON=$(PYTHON)
 
-check: python-check
+check: firmware python-check
 
 firmware:
 	$(MAKE) -C $(FW_DIR) clean all
 
-python-check: firmware
+python-check:
 	$(PYTHON) -m compileall $(PY_SIM_DIR)
 	$(PYTHON) -m pip install -r $(PY_SIM_DIR)/requirements.txt
 	$(PYTHON) $(PY_SIM_DIR)/test_no_drag.py
