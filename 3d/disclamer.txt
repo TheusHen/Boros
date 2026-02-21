@@ -1,0 +1,4 @@
+None 3D File is CFD-Ready, all simulations must be made with MATLAB;
+All 3D from Autodesk Fusion.
+
+Outdated; Need add shock cord and PCB bay at PCB.
