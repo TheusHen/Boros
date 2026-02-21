@@ -47,8 +47,10 @@ Reset_Handler:
     bcc 2f
     b 3f
 2:
-    ldr r3, [r0], #4
-    str r3, [r1], #4
+    ldr r3, [r0]
+    adds r0, r0, #4
+    str r3, [r1]
+    adds r1, r1, #4
     b 1b
 3:
     ldr r0, =_sbss
@@ -59,7 +61,8 @@ Reset_Handler:
     b 6f
 5:
     movs r2, #0
-    str r2, [r0], #4
+    str r2, [r0]
+    adds r0, r0, #4
     b 4b
 6:
     bl SystemInit
