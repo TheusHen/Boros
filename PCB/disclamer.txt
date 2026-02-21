@@ -1,4 +1,3 @@
 PCB Fully created with KiCAD.
 
-Not ready! Needs to improve layout and wire everything up.
-Outdated; Need add GND Planes.
+Ready!

@@ -1,0 +1,28 @@
+%TF.GenerationSoftware,KiCad,Pcbnew,9.0.3*%
+%TF.CreationDate,2026-02-21T10:46:01-03:00*%
+%TF.ProjectId,Boros Rocket,426f726f-7320-4526-9f63-6b65742e6b69,rev?*%
+%TF.SameCoordinates,Original*%
+%TF.FileFunction,Profile,NP*%
+%FSLAX46Y46*%
+G04 Gerber Fmt 4.6, Leading zero omitted, Abs format (unit mm)*
+G04 Created by KiCad (PCBNEW 9.0.3) date 2026-02-21 10:46:01*
+%MOMM*%
+%LPD*%
+G01*
+G04 APERTURE LIST*
+%TA.AperFunction,Profile*%
+%ADD10C,0.050000*%
+%TD*%
+G04 APERTURE END LIST*
+D10*
+X199150000Y-99850000D02*
+G75*
+G02*
+X98594400Y-99850000I-50277800J0D01*
+G01*
+X98594400Y-99850000D02*
+G75*
+G02*
+X199150000Y-99850000I50277800J0D01*
+G01*
+M02*
