@@ -41,3 +41,7 @@ fp-info-cache
 
 .idea/
 .vscode/
+
+*.pyc
+
+sim/flight/out/

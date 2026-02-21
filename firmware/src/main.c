@@ -1,4 +1,6 @@
+#include <math.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include "bmp390.h"
 #include "flash_w25q.h"
@@ -11,9 +13,17 @@
 
 #define CPU_HZ 16000000u
 
-#define SAMPLE_PERIOD_MS 10u
-#define IMU_CAL_SAMPLES  256u
-#define BARO_BASE_SAMPLES 128u
+#define SAMPLE_PERIOD_MS   10u
+#define IMU_CAL_SAMPLES    256u
+#define BARO_BASE_SAMPLES  128u
+#define SENSOR_RETRY_MS    500u
+#define LOG_FLUSH_MS       250u
+#define HEALTH_REPORT_MS  1000u
+
+#define BMP_MIN_VALID_PA     20000
+#define BMP_MAX_VALID_PA    120000
+#define TEMP_MIN_VALID_CENTI -5000
+#define TEMP_MAX_VALID_CENTI 10000
 
 /* ICM-42688 configured to +/-16g and +/-2000dps. */
 #define ICM_ACC_LSB_PER_G        2048
@@ -61,6 +71,28 @@ static uint32_t isqrt_u64(uint64_t x) {
   return (uint32_t)res;
 }
 
+static int bmp_sample_is_valid(const bmp390_sample_t* s) {
+  if (!s) return 0;
+  if ((s->press_pa < BMP_MIN_VALID_PA) || (s->press_pa > BMP_MAX_VALID_PA)) return 0;
+  if ((s->temp_centi < TEMP_MIN_VALID_CENTI) || (s->temp_centi > TEMP_MAX_VALID_CENTI)) return 0;
+  return 1;
+}
+
+static int32_t pressure_to_altitude_cm(int32_t pressure_pa, int32_t base_pa) {
+  if ((pressure_pa <= 0) || (base_pa <= 0)) return 0;
+
+  float ratio = (float)pressure_pa / (float)base_pa;
+  if (ratio < 0.05f) ratio = 0.05f;
+  if (ratio > 1.2f) ratio = 1.2f;
+
+  /* ISA troposphere approximation. */
+  float alt_m = 44330.0f * (1.0f - powf(ratio, 0.19029495f));
+  if (alt_m < 0.0f) alt_m = 0.0f;
+  if (alt_m > 100000.0f) alt_m = 100000.0f;
+
+  return (int32_t)(alt_m * 100.0f + 0.5f);
+}
+
 static void imu_cal_feed(imu_cal_t* c, const int16_t acc[3], const int16_t gyr[3]) {
   if (c->done) return;
 
@@ -103,23 +135,29 @@ int main(void) {
   uart2_init(CPU_HZ, 115200);
   spi1_init();
   systick_init_1ms(CPU_HZ);
-  log_init();
 
   uart2_puts("BOOT\r\n");
   beep(2);
 
-  uint32_t flash_id = w25q_read_jedec_id();
-  if (flash_id != 0u) {
-    uart2_puts("FLASH OK\r\n");
+  int log_ok = (log_init() == 0);
+  uint32_t flash_id = 0;
+  int flash_id_ok = log_ok && (w25q_read_jedec_id(&flash_id) == 0);
+  if (flash_id_ok) {
+    char id_line[40];
+    int id_n = snprintf(id_line, sizeof(id_line), "FLASH ID 0x%06lX\r\n", (unsigned long)flash_id);
+    if (id_n > 0) {
+      uart2_puts(id_line);
+    }
   } else {
-    uart2_puts("FLASH FAIL\r\n");
+    uart2_puts("FLASH ID FAIL\r\n");
   }
+  uart2_puts(log_ok ? "LOG FLASH\r\n" : "LOG RAM FALLBACK\r\n");
 
   int bmp_ready = (bmp390_init() == 0);
   int imu_ready = (icm42688_init() == 0);
   uart2_puts(bmp_ready ? "BMP OK\r\n" : "BMP FAIL\r\n");
   uart2_puts(imu_ready ? "IMU OK\r\n" : "IMU FAIL\r\n");
-  uart2_puts("LOG READY\r\n");
+  uart2_puts("SYS READY\r\n");
 
   imu_cal_t imu_cal = {0};
   int imu_cal_announced = 0;
@@ -129,8 +167,21 @@ int main(void) {
   int32_t baro_base_pa = 101325;
   int baro_base_ready = 0;
 
+  bmp390_sample_t bmp_last = {0};
+  bmp_last.press_pa = baro_base_pa;
+  bmp_last.temp_centi = 2500;
+  int bmp_have_last = 0;
+  uint16_t bmp_stale_count = 0;
+
+  int16_t acc_last[3] = {0, 0, ICM_ACC_LSB_PER_G};
+  int16_t gyr_last[3] = {0, 0, 0};
+  int imu_have_last = 0;
+  uint16_t imu_stale_count = 0;
+
   uint32_t last_sample = 0;
   uint32_t last_retry = 0;
+  uint32_t last_flush = 0;
+  uint32_t last_health = 0;
 
   while (1) {
     int c = uart2_getc_nonblock();
@@ -138,6 +189,9 @@ int main(void) {
       beep(1);
       log_dump_uart();
       beep(3);
+    } else if ((c == 'F') || (c == 'f')) {
+      log_flush();
+      uart2_puts("LOG FLUSH\r\n");
     }
 
     uint32_t now = millis();
@@ -146,25 +200,58 @@ int main(void) {
     }
     last_sample = now;
 
-    if (((!bmp_ready) || (!imu_ready)) && ((now - last_retry) >= 500u)) {
+    if (((!bmp_ready) || (!imu_ready)) && ((now - last_retry) >= SENSOR_RETRY_MS)) {
       last_retry = now;
       if (!bmp_ready) bmp_ready = (bmp390_init() == 0);
       if (!imu_ready) imu_ready = (icm42688_init() == 0);
     }
 
-    bmp390_sample_t bmp = {0};
+    bmp390_sample_t bmp = bmp_last;
     int bmp_ok = 0;
     if (bmp_ready) {
-      bmp_ok = (bmp390_read_sample(&bmp) == 0);
-      if (!bmp_ok) bmp_ready = 0;
+      if ((bmp390_read_sample(&bmp) == 0) && bmp_sample_is_valid(&bmp)) {
+        bmp_ok = 1;
+        bmp_last = bmp;
+        bmp_have_last = 1;
+        bmp_stale_count = 0;
+      } else {
+        bmp_ready = 0;
+      }
+    }
+    if (!bmp_ok) {
+      if (bmp_have_last) {
+        bmp = bmp_last;
+      } else {
+        bmp.press_pa = baro_base_pa;
+        bmp.temp_centi = 0;
+      }
+      if (bmp_stale_count < 0xFFFFu) bmp_stale_count++;
     }
 
-    int16_t acc_raw[3] = {0};
-    int16_t gyr_raw[3] = {0};
+    int16_t acc_raw[3] = {0, 0, ICM_ACC_LSB_PER_G};
+    int16_t gyr_raw[3] = {0, 0, 0};
     int imu_ok = 0;
     if (imu_ready) {
-      imu_ok = (icm42688_read6(acc_raw, gyr_raw) == 0);
-      if (!imu_ok) imu_ready = 0;
+      if (icm42688_read6(acc_raw, gyr_raw) == 0) {
+        imu_ok = 1;
+        for (int i = 0; i < 3; ++i) {
+          acc_last[i] = acc_raw[i];
+          gyr_last[i] = gyr_raw[i];
+        }
+        imu_have_last = 1;
+        imu_stale_count = 0;
+      } else {
+        imu_ready = 0;
+      }
+    }
+    if (!imu_ok) {
+      if (imu_have_last) {
+        for (int i = 0; i < 3; ++i) {
+          acc_raw[i] = acc_last[i];
+          gyr_raw[i] = gyr_last[i];
+        }
+      }
+      if (imu_stale_count < 0xFFFFu) imu_stale_count++;
     }
 
     if (imu_ok) {
@@ -180,6 +267,9 @@ int main(void) {
       baro_count++;
       if (baro_count >= BARO_BASE_SAMPLES) {
         baro_base_pa = (int32_t)(baro_sum_pa / baro_count);
+        if (baro_base_pa < BMP_MIN_VALID_PA || baro_base_pa > BMP_MAX_VALID_PA) {
+          baro_base_pa = 101325;
+        }
         baro_base_ready = 1;
         uart2_puts("BARO BASE OK\r\n");
       }
@@ -201,23 +291,32 @@ int main(void) {
     int16_t gy_dps_x10 = sat_i16((gy_corr * 100) / ICM_GYR_DPS_X10_DIVISOR);
     int16_t gz_dps_x10 = sat_i16((gz_corr * 100) / ICM_GYR_DPS_X10_DIVISOR);
 
-    int32_t pressure_pa = bmp_ok ? bmp.press_pa : baro_base_pa;
-    int16_t temp_centi = bmp_ok ? bmp.temp_centi : 0;
+    int32_t pressure_pa = bmp.press_pa;
+    int16_t temp_centi = bmp.temp_centi;
     int32_t altitude_cm = 0;
     if (baro_base_ready) {
-      int32_t dp = baro_base_pa - pressure_pa;
-      altitude_cm = (dp * 843) / 10; /* ~8.43 cm/Pa around sea level */
+      altitude_cm = pressure_to_altitude_cm(pressure_pa, baro_base_pa);
     }
 
     uint16_t flags = 0;
     if (bmp_ok) flags |= LOG_FLAG_BMP_OK;
     if (imu_ok) flags |= LOG_FLAG_IMU_OK;
+    if (!bmp_ok) flags |= LOG_FLAG_BMP_STALE;
+    if (!imu_ok) flags |= LOG_FLAG_IMU_STALE;
     if (imu_cal.done) flags |= LOG_FLAG_IMU_CAL_DONE;
     if (baro_base_ready) flags |= LOG_FLAG_BARO_BASE_OK;
     if (usb_vbus_sense_read()) flags |= LOG_FLAG_USB_VBUS;
     if (chg_stat_read()) flags |= LOG_FLAG_CHG_STAT;
     if (imu_int1_read()) flags |= LOG_FLAG_IMU_INT1;
     if (imu_int2_read()) flags |= LOG_FLAG_IMU_INT2;
+    if (log_is_flash_enabled()) {
+      flags |= LOG_FLAG_FLASH_OK;
+    } else {
+      flags |= LOG_FLAG_FLASH_FALLBK;
+    }
+    if (log_dropped_records() != 0u) {
+      flags |= LOG_FLAG_LOG_DROPPED;
+    }
 
     log_rec_t rec = {0};
     rec.ms = now;
@@ -233,5 +332,27 @@ int main(void) {
     rec.flags = flags;
 
     log_append(&rec);
+
+    if ((now - last_flush) >= LOG_FLUSH_MS) {
+      last_flush = now;
+      log_flush();
+    }
+
+    if ((now - last_health) >= HEALTH_REPORT_MS) {
+      last_health = now;
+      char line[180];
+      int n = snprintf(line, sizeof(line),
+                       "STAT t=%lu bmp=%d imu=%d bStale=%u iStale=%u flash=%d drop=%lu\r\n",
+                       (unsigned long)now,
+                       bmp_ready ? 1 : 0,
+                       imu_ready ? 1 : 0,
+                       (unsigned)bmp_stale_count,
+                       (unsigned)imu_stale_count,
+                       log_is_flash_enabled(),
+                       (unsigned long)log_dropped_records());
+      if (n > 0) {
+        uart2_puts(line);
+      }
+    }
   }
 }

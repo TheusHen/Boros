@@ -16,6 +16,13 @@ except ImportError:  # pragma: no cover
     from constants import AeroConfig, EngineConfig, EnvironmentConfig, MassConfig, WindConfig
 
 
+def _trapz(y: np.ndarray, x: np.ndarray) -> float:
+    trapezoid = getattr(np, "trapezoid", None)
+    if trapezoid is None:  # NumPy < 2.0
+        trapezoid = np.trapz
+    return float(trapezoid(y, x))
+
+
 @dataclass
 class GeometryProperties:
     stl_path: str
@@ -150,11 +157,11 @@ def build_engine_curve(engine_cfg: EngineConfig) -> tuple[np.ndarray, np.ndarray
         t = np.append(t, t[-1] + 1.0e-3)
         f = np.append(f, 0.0)
 
-    impulse = float(np.trapz(f, t))
+    impulse = _trapz(f, t)
     if engine_cfg.target_total_impulse_ns is not None and impulse > 0.0:
         scale = float(engine_cfg.target_total_impulse_ns) / impulse
         f *= scale
-        impulse = float(np.trapz(f, t))
+        impulse = _trapz(f, t)
 
     return t, f, impulse
 

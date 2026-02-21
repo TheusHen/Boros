@@ -41,7 +41,7 @@ jobs:
     env:
       ARM_GCC_ARCHIVE: arm-gnu-toolchain-13.2.Rel1-x86_64-arm-none-eabi.tar.xz
       ARM_GCC_URL: https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.Rel1-x86_64-arm-none-eabi.tar.xz
-      ARM_GCC_DIR: ${{ runner.temp }}/arm-gcc
+      ARM_GCC_DIR: .cache/arm-gcc
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -50,7 +50,7 @@ jobs:
         id: cache-arm-gcc
         uses: actions/cache@v4
         with:
-          path: ${{ env.ARM_GCC_DIR }}
+          path: .cache/arm-gcc
           key: arm-gcc-13.2-rel1-linux-x86_64
 
       - name: Download ARM GNU toolchain

@@ -10,6 +10,11 @@ enum {
   LOG_FLAG_CHG_STAT     = (1u << 5),
   LOG_FLAG_IMU_INT1     = (1u << 6),
   LOG_FLAG_IMU_INT2     = (1u << 7),
+  LOG_FLAG_FLASH_OK     = (1u << 8),
+  LOG_FLAG_FLASH_FALLBK = (1u << 9),
+  LOG_FLAG_BMP_STALE    = (1u << 10),
+  LOG_FLAG_IMU_STALE    = (1u << 11),
+  LOG_FLAG_LOG_DROPPED  = (1u << 12),
 };
 
 typedef struct __attribute__((packed)) {
@@ -34,7 +39,9 @@ typedef struct __attribute__((packed)) {
   uint16_t crc;
 } log_rec_t;
 
-void log_init(void);
+int log_init(void);
 void log_append(const log_rec_t* r);
 void log_flush(void);
 void log_dump_uart(void);
+int log_is_flash_enabled(void);
+uint32_t log_dropped_records(void);

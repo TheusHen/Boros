@@ -1,5 +1,5 @@
-CC = arm-none-eabi-gcc
-OBJCOPY = arm-none-eabi-objcopy
+CC ?= arm-none-eabi-gcc
+OBJCOPY ?= arm-none-eabi-objcopy
 
 CFLAGS  ?= -mcpu=cortex-m0plus -mthumb -O2 -Wall -Wextra -std=c11
 CFLAGS  += -ffunction-sections -fdata-sections -I. -Isrc
@@ -37,4 +37,8 @@ firmware.bin: firmware.elf
 	$(OBJCOPY) -O binary $< $@
 
 clean:
-	$(RM) $(OBJS) firmware.elf firmware.bin
+ifeq ($(OS),Windows_NT)
+	-@for %%f in ($(OBJS) firmware.elf firmware.bin) do @if exist "%%f" del /Q /F "%%f"
+else
+	-$(RM) $(OBJS) firmware.elf firmware.bin
+endif

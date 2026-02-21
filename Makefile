@@ -13,6 +13,7 @@ firmware:
 
 python-check:
 	$(PYTHON) -m compileall sim/flight
+	$(PYTHON) -m pip install -r sim/flight/requirements.txt
 	$(PYTHON) sim/flight/test_no_drag.py
 	$(PYTHON) sim/flight/test_constant_drag.py
 
