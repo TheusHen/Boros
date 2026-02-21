@@ -50,7 +50,7 @@ def build_markdown(data: dict) -> str:
     lines.append(f"- Print factor: `{airframe['mass_factor']}`")
     lines.append(f"- Estimated 3D mass: `{airframe['estimated_mass_g']}` g")
     lines.append("")
-    lines.append("### PCB Plate (25mm x 62mm, 4 layers)")
+    lines.append("### PCB Plate (25mm x 62mm, 2 layers)")
     lines.append(f"- FR4 thickness: `{pcb['fr4_thickness_mm']}` mm")
     lines.append(f"- Copper per layer: `{pcb['copper_oz_per_ft2']}` oz/ft^2")
     lines.append(f"- Copper thickness per layer: `{pcb['copper_thickness_um_per_layer']}` um")
@@ -71,7 +71,7 @@ def build_markdown(data: dict) -> str:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Compute mass budget from STL + motor + 4-layer PCB plate")
+    ap = argparse.ArgumentParser(description="Compute mass budget from STL + motor + 2-layer PCB plate")
     ap.add_argument("--stl", type=str, default=str(default_stl_path()))
     ap.add_argument("--stl-unit-scale", type=float, default=1.0e-3, help="STL units to meters scale factor")
     ap.add_argument("--body-quantile", type=float, default=0.90)
@@ -85,7 +85,7 @@ def main() -> None:
     ap.add_argument("--pcb-width-mm", type=float, default=25.0)
     ap.add_argument("--pcb-height-mm", type=float, default=62.0)
     ap.add_argument("--pcb-total-thickness-mm", type=float, default=1.6)
-    ap.add_argument("--pcb-copper-layers", type=int, default=4)
+    ap.add_argument("--pcb-copper-layers", type=int, default=2)
     ap.add_argument("--pcb-copper-oz", type=float, default=1.0)
     ap.add_argument("--pcb-copper-coverage", type=float, default=1.0)
     ap.add_argument("--pcb-fr4-density-kg-m3", type=float, default=1850.0)

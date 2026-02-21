@@ -1,12 +1,12 @@
 %TF.GenerationSoftware,KiCad,Pcbnew,9.0.3*%
-%TF.CreationDate,2026-02-21T18:13:17-03:00*%
-%TF.ProjectId,Boros Rocket - Plate,426f726f-7320-4526-9f63-6b6574202d20,rev?*%
+%TF.CreationDate,2026-02-21T19:03:40-03:00*%
+%TF.ProjectId,Boros_Rocket_Plate_V4,426f726f-7320-4526-9f63-6b6574202d20,rev?*%
 %TF.SameCoordinates,Original*%
 %TF.FileFunction,Paste,Bot*%
 %TF.FilePolarity,Positive*%
 %FSLAX46Y46*%
 G04 Gerber Fmt 4.6, Leading zero omitted, Abs format (unit mm)*
-G04 Created by KiCad (PCBNEW 9.0.3) date 2026-02-21 18:13:17*
+G04 Created by KiCad (PCBNEW 9.0.3) date 2026-02-21 19:03:40*
 %MOMM*%
 %LPD*%
 G01*

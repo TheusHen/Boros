@@ -16,7 +16,7 @@ The project has already passed **Pre-Alpha** and **Alpha** stages and is now foc
 
 ## Hardware Direction (Plate Version)
 
-We are using the **Plate PCB** approach (not the Coin version).
+We are using the **Plate PCB** approach (not the Coin version), currently at **V4 (2 layers)**.
 
 ### PCB and 3D previews
 
@@ -28,6 +28,7 @@ We are using the **Plate PCB** approach (not the Coin version).
 ![PCB Version v1](assets/pcb_versions/v1.png)
 ![PCB Version v2](assets/pcb_versions/v2.png)
 ![PCB Version v3](assets/pcb_versions/v3.png)
+![PCB Version v4](assets/pcb_versions/v4.png)
 
 ## Mass Budget Baseline (Plate)
 
@@ -35,7 +36,7 @@ The mass budget tool is used to estimate liftoff mass from:
 
 - Rocket 3D model volume
 - Motor mass: **24.1 g**
-- PCB plate geometry: **25 mm x 62 mm**, **4 copper layers**
+- PCB plate geometry: **25 mm x 62 mm**, **2 copper layers**
 - Motor limit check: **113 g max liftoff mass**
 
 Run:

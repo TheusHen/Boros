@@ -88,7 +88,7 @@ class AeroConfig:
 
 @dataclass
 class MassConfig:
-    total_liftoff_mass_kg: float = 0.076978  # Plate version estimate from mass budget (3D + motor + PCB)
+    total_liftoff_mass_kg: float = 0.076211  # Plate V4 (2-layer) estimate from mass budget (3D + motor + PCB)
     motor_total_mass_kg: float = 0.0241
     motor_prop_mass_kg: float = 0.0122
 
