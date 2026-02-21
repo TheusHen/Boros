@@ -23,14 +23,21 @@ SECTIONS
     KEEP(*(.fini))
   } > FLASH
 
+  /* Discard C++ exception unwind tables (not needed on Cortex-M0+) */
+  /DISCARD/ :
+  {
+    *(.ARM.exidx*)
+    *(.ARM.extab*)
+  }
+
   _sidata = LOADADDR(.data);
 
-  .data : AT (ADDR(.text) + SIZEOF(.text))
+  .data :
   {
     _sdata = .;
     *(.data*)
     _edata = .;
-  } > RAM
+  } > RAM AT> FLASH
 
   .bss :
   {
@@ -46,4 +53,7 @@ SECTIONS
     *(.noinit*)
     _enoinit = .;
   } > RAM
+
+  /* Heap start symbol required by _sbrk (libnosys) */
+  end = _ebss;
 }
