@@ -1,2 +1,2 @@
-Firmware fully created with C and Assembly for RP2040;
+Firmware fully created with C and Assembly for STM32;
 Check sim/ for simulations(3D + Flight) and tests.
