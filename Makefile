@@ -2,31 +2,48 @@ PYTHON ?= python3
 MATLAB ?= matlab
 OCTAVE ?= octave
 
-.PHONY: ci check firmware python-check python-sim sim-3d-matlab sim-3d-octave clean
+FW_DIR := firmware
+PY_SIM_DIR := sim/flight
+SIM3D_DIR := sim/3d
+TOOLS_DIR := tools
+ROCKET_STL := 3d/BorosRocket.stl
 
-ci: check python-sim
+.PHONY: ci ci-3d check firmware python-check python-sim sim-3d-matlab sim-3d-octave dump dump-list clean
 
-check: firmware python-check
+ci: python-sim
+
+ci-3d: sim-3d-octave
+	$(MAKE) python-sim PYTHON=$(PYTHON)
+
+check: python-check
 
 firmware:
-	$(MAKE) -C firmware clean all
+	$(MAKE) -C $(FW_DIR) clean all
 
-python-check:
-	$(PYTHON) -m compileall sim/flight
-	$(PYTHON) -m pip install -r sim/flight/requirements.txt
-	$(PYTHON) sim/flight/test_no_drag.py
-	$(PYTHON) sim/flight/test_constant_drag.py
+python-check: firmware
+	$(PYTHON) -m compileall $(PY_SIM_DIR)
+	$(PYTHON) -m pip install -r $(PY_SIM_DIR)/requirements.txt
+	$(PYTHON) $(PY_SIM_DIR)/test_no_drag.py
+	$(PYTHON) $(PY_SIM_DIR)/test_constant_drag.py
 
-python-sim:
-	$(PYTHON) sim/flight/simulate.py --mass-total-g 80 --stl 3d/BorosRocket.stl --out sim/flight/out
-	$(PYTHON) sim/flight/monte_carlo.py --iterations 120 --out sim/flight/out/monte_carlo
-	$(PYTHON) sim/flight/detect_apogee.py sim/flight/out/firmware_like_log.csv
+python-sim: python-check
+	$(PYTHON) $(PY_SIM_DIR)/simulate.py --mass-total-g 80 --stl $(ROCKET_STL) --out $(PY_SIM_DIR)/out
+	$(PYTHON) $(PY_SIM_DIR)/monte_carlo.py --iterations 120 --out $(PY_SIM_DIR)/out/monte_carlo
+	$(PYTHON) $(PY_SIM_DIR)/detect_apogee.py $(PY_SIM_DIR)/out/firmware_like_log.csv
 
 sim-3d-matlab:
-	$(MATLAB) -batch "cd('sim/3d'); test_aero_limits; run_ci_sim"
+	$(MATLAB) -batch "cd('$(SIM3D_DIR)'); test_aero_limits; run_ci_sim"
 
-sim-3d-octave:
-	$(OCTAVE) --quiet --eval "cd('sim/3d'); test_aero_limits; run_ci_sim;"
+sim-3d-octave: firmware
+	$(OCTAVE) --quiet --eval "cd('$(SIM3D_DIR)'); test_aero_limits; run_ci_sim;"
+
+dump:
+	$(PYTHON) -m pip install -r $(TOOLS_DIR)/requirements.txt
+	$(PYTHON) $(TOOLS_DIR)/dump.py $(DUMP_ARGS)
+
+dump-list:
+	$(PYTHON) -m pip install -r $(TOOLS_DIR)/requirements.txt
+	$(PYTHON) $(TOOLS_DIR)/dump.py --list-ports
 
 clean:
-	$(MAKE) -C firmware clean
+	$(MAKE) -C $(FW_DIR) clean

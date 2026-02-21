@@ -3,7 +3,9 @@
 #include <stdio.h>
 
 #include "bmp390.h"
+#include "fault.h"
 #include "flash_w25q.h"
+#include "flight_fsm.h"
 #include "gpio.h"
 #include "icm42688.h"
 #include "log.h"
@@ -19,6 +21,9 @@
 #define SENSOR_RETRY_MS    500u
 #define LOG_FLUSH_MS       250u
 #define HEALTH_REPORT_MS  1000u
+#define WDT_TIMEOUT_MS   30000u
+
+#define VBAT_UNKNOWN_MV (-1)
 
 #define BMP_MIN_VALID_PA     20000
 #define BMP_MAX_VALID_PA    120000
@@ -131,12 +136,26 @@ static void imu_cal_feed(imu_cal_t* c, const int16_t acc[3], const int16_t gyr[3
 }
 
 int main(void) {
+  fault_boot_init();
+  uint32_t reset_cause = fault_get_reset_cause();
+
   gpio_init_all();
   uart2_init(CPU_HZ, 115200);
   spi1_init();
   systick_init_1ms(CPU_HZ);
+  fault_watchdog_init(WDT_TIMEOUT_MS);
 
   uart2_puts("BOOT\r\n");
+  if (fault_had_hardfault()) {
+    uart2_puts("PREV HARDFAULT\r\n");
+  }
+  {
+    char rst_line[48];
+    int rn = snprintf(rst_line, sizeof(rst_line), "RESET CAUSE 0x%02lX\r\n", (unsigned long)reset_cause);
+    if (rn > 0) {
+      uart2_puts(rst_line);
+    }
+  }
   beep(2);
 
   int log_ok = (log_init() == 0);
@@ -178,16 +197,28 @@ int main(void) {
   int imu_have_last = 0;
   uint16_t imu_stale_count = 0;
 
+  int32_t alt_last_cm = 0;
+  uint32_t alt_last_ms = 0;
+  int32_t vz_lp_cms = 0;
+
+  flight_fsm_t flight_fsm;
+  flight_events_t flight_events = {0};
+  flight_fsm_init(&flight_fsm, 0);
+
   uint32_t last_sample = 0;
   uint32_t last_retry = 0;
   uint32_t last_flush = 0;
   uint32_t last_health = 0;
 
   while (1) {
+    fault_watchdog_kick();
+
     int c = uart2_getc_nonblock();
     if ((c == 'D') || (c == 'd')) {
       beep(1);
+      fault_watchdog_kick();
       log_dump_uart();
+      fault_watchdog_kick();
       beep(3);
     } else if ((c == 'F') || (c == 'f')) {
       log_flush();
@@ -298,7 +329,25 @@ int main(void) {
       altitude_cm = pressure_to_altitude_cm(pressure_pa, baro_base_pa);
     }
 
-    uint16_t flags = 0;
+    if (baro_base_ready) {
+      if (alt_last_ms != 0u && now > alt_last_ms) {
+        uint32_t dt_ms = now - alt_last_ms;
+        int32_t vz_inst = (int32_t)(((int64_t)(altitude_cm - alt_last_cm) * 1000LL) / (int64_t)dt_ms);
+        vz_lp_cms = ((vz_lp_cms * 7) + vz_inst) / 8;
+      }
+      alt_last_ms = now;
+      alt_last_cm = altitude_cm;
+    } else {
+      vz_lp_cms = (vz_lp_cms * 7) / 8;
+    }
+    int16_t vz_cms = sat_i16(vz_lp_cms);
+
+    int arm_ok = baro_base_ready && imu_cal.done && !usb_vbus_sense_read();
+    int sensors_ok = (bmp_ok || bmp_have_last) && (imu_ok || imu_have_last);
+    flight_fsm_step(&flight_fsm, now, altitude_cm, az_mg, vz_cms, sensors_ok, arm_ok, &flight_events);
+    flight_state_t flight_state = flight_fsm_state(&flight_fsm);
+
+    uint32_t flags = 0;
     if (bmp_ok) flags |= LOG_FLAG_BMP_OK;
     if (imu_ok) flags |= LOG_FLAG_IMU_OK;
     if (!bmp_ok) flags |= LOG_FLAG_BMP_STALE;
@@ -317,6 +366,16 @@ int main(void) {
     if (log_dropped_records() != 0u) {
       flags |= LOG_FLAG_LOG_DROPPED;
     }
+    if (flight_events.launch) flags |= LOG_FLAG_EVT_LAUNCH;
+    if (flight_events.apogee) flags |= LOG_FLAG_EVT_APOGEE;
+    if (flight_events.landed) flags |= LOG_FLAG_EVT_LANDED;
+    if (flight_state == FLIGHT_STATE_ARMED) flags |= LOG_FLAG_ARMED;
+    if (flight_state == FLIGHT_STATE_FAULT) flags |= LOG_FLAG_FLIGHT_FAULT;
+    if (reset_cause & RESET_CAUSE_WDT) flags |= LOG_FLAG_RST_WDT;
+    if (reset_cause & RESET_CAUSE_BOR) flags |= LOG_FLAG_RST_BOR;
+    if (reset_cause & RESET_CAUSE_PIN) flags |= LOG_FLAG_RST_PIN;
+    if (reset_cause & RESET_CAUSE_SOFT) flags |= LOG_FLAG_RST_SOFT;
+    if (reset_cause & RESET_CAUSE_HARDFAULT) flags |= LOG_FLAG_RST_HFAULT;
 
     log_rec_t rec = {0};
     rec.ms = now;
@@ -329,6 +388,12 @@ int main(void) {
     rec.gx_dps_x10 = gx_dps_x10;
     rec.gy_dps_x10 = gy_dps_x10;
     rec.gz_dps_x10 = gz_dps_x10;
+    rec.vz_cms = vz_cms;
+    rec.vbat_mv = VBAT_UNKNOWN_MV;
+    rec.bmp_stale = bmp_stale_count;
+    rec.imu_stale = imu_stale_count;
+    rec.flight_state = (uint8_t)flight_state;
+    rec.reset_cause = (uint8_t)(reset_cause & 0xFFu);
     rec.flags = flags;
 
     log_append(&rec);
@@ -342,8 +407,9 @@ int main(void) {
       last_health = now;
       char line[180];
       int n = snprintf(line, sizeof(line),
-                       "STAT t=%lu bmp=%d imu=%d bStale=%u iStale=%u flash=%d drop=%lu\r\n",
+                       "STAT t=%lu st=%u bmp=%d imu=%d bStale=%u iStale=%u flash=%d drop=%lu\r\n",
                        (unsigned long)now,
+                       (unsigned)flight_state,
                        bmp_ready ? 1 : 0,
                        imu_ready ? 1 : 0,
                        (unsigned)bmp_stale_count,

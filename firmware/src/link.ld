@@ -39,4 +39,11 @@ SECTIONS
     *(COMMON)
     _ebss = .;
   } > RAM
+
+  .noinit (NOLOAD) :
+  {
+    _snoinit = .;
+    *(.noinit*)
+    _enoinit = .;
+  } > RAM
 }

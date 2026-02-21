@@ -12,6 +12,7 @@
 #define GPIOC_BASE (AHB2PERIPH_BASE + 0x0800UL)
 #define SPI1_BASE  (APB2PERIPH_BASE + 0x3000UL)
 #define USART2_BASE (APB1PERIPH_BASE + 0x4400UL)
+#define IWDG_BASE  (APB1PERIPH_BASE + 0x3000UL)
 #define FLASH_BASE (0x40022000UL)
 #define SYSTICK_BASE (0xE000E010UL)
 #define NVIC_ISER0  (*(volatile uint32_t*)0xE000E100UL)
@@ -86,6 +87,14 @@ typedef struct {
 } FLASH_TypeDef;
 
 typedef struct {
+  volatile uint32_t KR;
+  volatile uint32_t PR;
+  volatile uint32_t RLR;
+  volatile uint32_t SR;
+  volatile uint32_t WINR;
+} IWDG_TypeDef;
+
+typedef struct {
   volatile uint32_t CTRL;
   volatile uint32_t LOAD;
   volatile uint32_t VAL;
@@ -99,4 +108,5 @@ typedef struct {
 #define SPI1  ((SPI_TypeDef*)SPI1_BASE)
 #define USART2 ((USART_TypeDef*)USART2_BASE)
 #define FLASH ((FLASH_TypeDef*)FLASH_BASE)
+#define IWDG ((IWDG_TypeDef*)IWDG_BASE)
 #define SysTick ((SysTick_TypeDef*)SYSTICK_BASE)

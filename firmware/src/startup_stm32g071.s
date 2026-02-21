@@ -5,20 +5,20 @@
 .global g_pfnVectors
 .global Reset_Handler
 .global Default_Handler
+.global HardFault_Handler
 .weak NMI_Handler
-.weak HardFault_Handler
 .weak SVC_Handler
 .weak PendSV_Handler
 .weak SysTick_Handler
 
 .thumb_set NMI_Handler, Default_Handler
-.thumb_set HardFault_Handler, Default_Handler
 .thumb_set SVC_Handler, Default_Handler
 .thumb_set PendSV_Handler, Default_Handler
 .thumb_set SysTick_Handler, Default_Handler
 
 .extern SystemInit
 .extern main
+.extern fault_hardfault
 
 .section .isr_vector, "a", %progbits
 .type pfnVectors, %object
@@ -65,6 +65,20 @@ Reset_Handler:
     bl SystemInit
     bl main
     b .
+
+.section .text.HardFault_Handler, "ax", %progbits
+HardFault_Handler:
+    mov r1, lr
+    movs r2, #4
+    tst r1, r2
+    beq 1f
+    mrs r0, psp
+    b 2f
+1:
+    mrs r0, msp
+2:
+    mov r1, lr
+    b fault_hardfault
 
 .section .text.Default_Handler, "ax", %progbits
 Default_Handler:

@@ -45,3 +45,9 @@ fp-info-cache
 *.pyc
 
 sim/flight/out/
+firmware/dumps/
+
+labels.txt
+labels_coords.txt     
+netnames.txt
+values.txt
