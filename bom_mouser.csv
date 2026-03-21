@@ -1,18 +1,18 @@
-Mouser #;Mfr. #;Manufacturer;Customer #;Description;RoHS;Lifecycle;Order Qty.;Price (USD);Ext.: (USD)
-581-06031C104MAT2A;06031C104MAT2A;KYOCERA AVX;;Multilayer Ceramic Capacitors MLCC - SMD/SMT T101 COMMERCIAL;RoHS Compliant;;6;$0.37;$2.22
-346-CM105X7R105K10AT;CM105X7R105K10AT;KYOCERA AVX;;Multilayer Ceramic Capacitors MLCC - SMD/SMT KGM15AR71A105KT NEW GLOBAL PN 10V 1uF 10% X7R;RoHS Compliant;Factory Special Order;4;$0.18;$0.72
-581-0805X7R106KT1AT;0805X7R106KT1AT;KYOCERA AVX;;Multilayer Ceramic Capacitors MLCC - SMD/SMT CAP-RESALE;RoHS Compliant;;4;$0.92;$3.68
-581-08056D475M;08056D475MAT2A;KYOCERA AVX;;Multilayer Ceramic Capacitors MLCC - SMD/SMT KGM21AR50J475MU NEW GLOBAL PN 6.3V 4.7uF A 581-KGM21AR50J475MU;RoHS Compliant By Exemption;;4;$0.40;$1.60
-71-CRCW0603910KFKEAH;CRCW0603910KFKEAHP;Vishay;;Thick Film Resistors - SMD Thick Film Resistors - SMD;RoHS Compliant;;3;$0.19;$0.57
-71-RCA0603100KFKEC;RCA0603100KFKEC;Vishay;;Thick Film Resistors - SMD Thick Film Resistors - SMD;RoHS Compliant;New At Mouser;4;$0.11;$0.44
-71-CRCW0603J-4.7K-E3;CRCW06034K70JNEA;Vishay;;Thick Film Resistors - SMD 1/8 Watt 4.7Kohms 5%;RoHS Compliant By Exemption;;3;$0.10;$0.30
-262-BMP390;BMP390;Bosch;;Board Mount Pressure Sensors High Performance Barometric Pressure Sensor for Altitude Tracking;RoHS Compliant;;3;$3.08;$9.24
-511-STM32L081KZT6;STM32L081KZT6;STMicroelectronics;;ARM Microcontrollers - MCU Ultra-low-power Arm Cortex-M0+ MCU 192-Kbytes of Flash , 32 MHz CPU, AES;RoHS Compliant;;2;$4.48;$8.96
-410-ICM-42688-P;ICM-42688-P;TDK;;IMUs - Inertial Measurement Units 6 Axis IMU Motion Tracking;RoHS Compliant;;2;$5.53;$11.06
-579-MCP73831T-2DCIMC;MCP73831T-2DCI/MC;Microchip;;Battery Management Charge mgnt contr;RoHS Compliant;;2;$0.79;$1.58
-511-USBLC6-2SC6;USBLC6-2SC6;STMicroelectronics;;ESD Protection Diodes / TVS Diodes ESD Protection Low Cap;RoHS Compliant;;3;$0.36;$1.08
-179-CPI-148-24-90T67;CPI-148-24-90T-67;Same Sky;;Buzzers & Audio Indicators - Board Mount 13.9 mm, 24 Vdc, 90 dB, Through Hole, Piezo Audio Indicator Buzzer;RoHS Compliant;;2;$1.82;$3.64
-637-MMBT3904;MMBT3904;Diotec Semiconductor;;Bipolar Transistors - BJT BJT, SOT-23, 40V, 200mA, NPN;RoHS Compliant;;4;$0.12;$0.48
-595-TLV70033DDCR;TLV70033DDCR;Texas Instruments;;LDO Voltage Regulators 200mA Low IQ LDO Reg for Portables A 595 A 595-TLV70033DDCT;RoHS Compliant;;3;$0.23;$0.69
-306-B2BXHALFSNP;B2B-XH-A(LF)(SN);JST;;Headers & Wire Housings XH HEADER (TOP);RoHS Compliant;New At Mouser;2;$0.10;$0.20
-571-1981568-1;1981568-1;TE Connectivity;;USB Connectors REC TYPE B ASSY MICRO;RoHS Compliant;;2;$2.18;$4.36
+#,Mouser #,Mfr. #,Manufacturer,Description,RoHS,Lifecycle,Qty,Unit Price (USD),Total (USD)
+1,581-06031C104MAT2A,06031C104MAT2A,KYOCERA AVX,MLCC SMD 100nF,RoHS Compliant,,6,$0.37,$2.22
+2,346-CM105X7R105K10AT,CM105X7R105K10AT,KYOCERA AVX,MLCC SMD 10V 1uF 10% X7R,RoHS Compliant,Factory Special Order,4,$0.18,$0.72
+3,581-0805X7R106KT1AT,0805X7R106KT1AT,KYOCERA AVX,MLCC SMD 10uF X7R,RoHS Compliant,,4,$0.92,$3.68
+4,581-08056D475M,08056D475MAT2A,KYOCERA AVX,MLCC SMD 6.3V 4.7uF,RoHS Compliant By Exemption,,4,$0.40,$1.60
+5,71-CRCW0603910KFKEAH,CRCW0603910KFKEAHP,Vishay,Thick Film Resistor SMD 910K,RoHS Compliant,,3,$0.19,$0.57
+6,71-RCA0603100KFKEC,RCA0603100KFKEC,Vishay,Thick Film Resistor SMD 100K,RoHS Compliant,New At Mouser,4,$0.11,$0.44
+7,71-CRCW0603J-4.7K-E3,CRCW06034K70JNEA,Vishay,Thick Film Resistor SMD 1/8W 4.7K 5%,RoHS Compliant By Exemption,,3,$0.10,$0.30
+8,262-BMP390,BMP390,Bosch,Barometric Pressure Sensor,RoHS Compliant,,3,$3.08,$9.24
+9,511-STM32L081KZT6,STM32L081KZT6,STMicroelectronics,ARM Cortex-M0+ MCU 192KB Flash 32MHz AES,RoHS Compliant,,2,$4.48,$8.96
+10,410-ICM-42688-P,ICM-42688-P,TDK,6-Axis IMU Motion Tracking,RoHS Compliant,,2,$5.53,$11.06
+11,579-MCP73831T-2DCIMC,MCP73831T-2DCI/MC,Microchip,Battery Charge Management Controller,RoHS Compliant,,2,$0.79,$1.58
+12,511-USBLC6-2SC6,USBLC6-2SC6,STMicroelectronics,ESD Protection Diode Low Cap,RoHS Compliant,,3,$0.36,$1.08
+13,179-CPI-148-24-90T67,CPI-148-24-90T-67,Same Sky,Piezo Buzzer 13.9mm 24V 90dB Through Hole,RoHS Compliant,,2,$1.82,$3.64
+14,637-MMBT3904,MMBT3904,Diotec Semiconductor,NPN BJT SOT-23 40V 200mA,RoHS Compliant,,4,$0.12,$0.48
+15,595-TLV70033DDCR,TLV70033DDCR,Texas Instruments,LDO Regulator 200mA Low IQ,RoHS Compliant,,3,$0.23,$0.69
+16,306-B2BXHALFSNP,B2B-XH-A(LF)(SN),JST,XH Header 2-pin Top Entry,RoHS Compliant,New At Mouser,2,$0.10,$0.20
+17,571-1981568-1,1981568-1,TE Connectivity,Micro USB Type B Receptacle,RoHS Compliant,,2,$2.18,$4.36
