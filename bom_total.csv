@@ -1,0 +1,28 @@
+Category,Item,Mfr. #,Qty,Unit Price (USD),Total (USD),Notes
+Mouser - Components,Multilayer Ceramic Capacitors - 100nF,06031C104MAT2A,6,$0.37,$2.22,
+Mouser - Components,Multilayer Ceramic Capacitors - 1uF 10V X7R,CM105X7R105K10AT,4,$0.18,$0.72,Factory Special Order
+Mouser - Components,Multilayer Ceramic Capacitors - 10uF X7R,0805X7R106KT1AT,4,$0.92,$3.68,
+Mouser - Components,Multilayer Ceramic Capacitors - 4.7uF 6.3V,08056D475MAT2A,4,$0.40,$1.60,
+Mouser - Components,Thick Film Resistor 910K,CRCW0603910KFKEAHP,3,$0.19,$0.57,
+Mouser - Components,Thick Film Resistor 100K,RCA0603100KFKEC,4,$0.11,$0.44,New At Mouser
+Mouser - Components,Thick Film Resistor 4.7K 5%,CRCW06034K70JNEA,3,$0.10,$0.30,
+Mouser - Components,Barometric Pressure Sensor,BMP390,3,$3.08,$9.24,
+Mouser - Components,ARM Cortex-M0+ MCU,STM32L081KZT6,2,$4.48,$8.96,
+Mouser - Components,6-Axis IMU,ICM-42688-P,2,$5.53,$11.06,
+Mouser - Components,Battery Charge Management Controller,MCP73831T-2DCI/MC,2,$0.79,$1.58,
+Mouser - Components,ESD Protection Diode Low Cap,USBLC6-2SC6,3,$0.36,$1.08,
+Mouser - Components,Piezo Buzzer 13.9mm 24V 90dB,CPI-148-24-90T-67,2,$1.82,$3.64,
+Mouser - Components,NPN BJT SOT-23 40V 200mA,MMBT3904,4,$0.12,$0.48,
+Mouser - Components,LDO Regulator 200mA Low IQ,TLV70033DDCR,3,$0.23,$0.69,
+Mouser - Components,XH Header 2-pin Top Entry,"B2B-XH-A(LF)(SN)",2,$0.10,$0.20,New At Mouser
+Mouser - Components,Micro USB Type B Receptacle,1981568-1,2,$2.18,$4.36,
+Mouser - Subtotal,Components only,—,—,—,$50.82,
+Mouser - Shipping,Standard,—,—,—,$35.00,
+Mouser - Backorder Shipping,Standard,—,—,—,$35.00,
+Mouser - TOTAL,—,—,—,—,$120.82,
+PCB - Fabrication,PCB Calculated Price,—,1,$2.10,$2.10,Additional charges may apply for special cases
+PCB - Shipping,Global Standard Direct Line,—,—,—,$3.12,8-13 business days
+PCB - TOTAL,—,—,—,—,$5.22,
+STM32 - MCU,STM32G071K8TxN LQFP-32,STM32G071K8T6N,2,~$3.00,~$6.00,ESTIMATED - No stock at authorized distributors (21-Mar-26). Price based on ST suggested resale range for STM32G071 family in small qty.
+STM32 - TOTAL,—,—,—,—,~$6.00,ESTIMATED
+GRAND TOTAL,Mouser + PCB + STM32 (est.),—,—,—,~$132.04,STM32 portion is estimated — final value may vary
